@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Diversity of Hispanic/Latino groups and languages spoken in the home</title>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #titleDiv {
+      padding: 10px;
+    }
+    #titleText {
+      font-size: 16pt;
+      font-weight: 600;
+      padding: 10px 5px 10px 5px;
+    }
+    #dataDescription {
+      font-size: 12pt;
+      padding: 10px 5px 0px 5px;
+      display: none;
+    }
+  </style>
+
+<link rel="stylesheet" href="https://js.arcgis.com/4.23/esri/themes/light/main.css" />
+<script src="https://js.arcgis.com/4.23/"></script>
+
+  <script>
+    require([
+      "esri/WebMap",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/renderers/SimpleRenderer",
+      "esri/widgets/Expand",
+      "esri/widgets/Home",
+      "esri/widgets/Bookmarks",
+      "esri/widgets/LayerList",
+      "esri/widgets/Legend",
+      "esri/widgets/Swipe"
+    ], function(
+      WebMap,
+      MapView,
+      FeatureLayer,
+      SimpleRenderer,
+      Expand,
+      Home,
+      Bookmarks,
+      LayerList,
+      Legend,
+      Swipe
+    ) {
+
+    ( async () => {
+
+      const titleText = document.getElementById("titleText");
+
+      const map = new WebMap({
+        portalItem: {
+          id: "67947f0ab45a4754946c825e47b5e897"
+        }
+      });
+
+      await map.load();
+      const title = map.portalItem.title;
+      titleText.innerText = title;
+
+      const groups = map.allLayers.filter(layer => layer.type === "group");
+      groups.forEach(layer => {
+        if( layer.title === "Select a variable to explore its diversity" ){
+          layer.visibilityMode = "exclusive";
+          layer.listMode = "show";
+        } else {
+          layer.listMode = "hide-children";
+        }
+      });
+
+      const predominantLanguage = map.allLayers.find( layer => layer.title === "Predominant language spoken at home");
+      const languageDiversityIndex = map.allLayers.find( layer => layer.title === "Language Diversity Index");
+      const latinoGroupsPredominance = map.allLayers.find( layer => layer.title === "Predominant Hispanic or Latino group");
+      const latinoGroupsDiversity = map.allLayers.find( layer => layer.title === "Diversity of Hispanic or Latino populations");
+
+      predominantLanguage.visible = true;
+      languageDiversityIndex.visible = true;
+      latinoGroupsPredominance.visible = true;
+      latinoGroupsDiversity.visible = true;
+
+      const otherLayers = map.layers.filter(layer => layer.type !== "group");
+      otherLayers.forEach(layer => {
+        layer.listMode = "hide";
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map,
+        constraints: {
+          snapToZoom: false
+        }
+      });
+      view.ui.add("titleDiv", "top-right");
+
+      const leadingLegend = new Legend({
+        view,
+        style: "card",
+        layerInfos: [{
+          layer: predominantLanguage
+        }, {
+          layer: latinoGroupsPredominance
+        }]
+      });
+      view.ui.add(new Expand({
+        view,
+        content: leadingLegend,
+        expanded: true
+      }), "bottom-left");
+
+      const trailingLegend = new Legend({
+        view,
+        style: "card",
+        layerInfos: [{
+          layer: languageDiversityIndex
+        }, {
+          layer: latinoGroupsDiversity
+        }]
+      });
+      view.ui.add(new Expand({
+        view,
+        content: trailingLegend,
+        expanded: true
+      }), "bottom-right");
+
+      // create a new Swipe widget
+      const swipe = new Swipe({
+        leadingLayers: [predominantLanguage, latinoGroupsPredominance],
+        trailingLayers: [languageDiversityIndex, latinoGroupsDiversity],
+        position: 25,
+        view
+      });
+      // add the widget to the view
+      view.ui.add(swipe);
+
+      view.ui.add(new Expand({
+        view,
+        expanded: true,
+        content: new LayerList({
+          view,
+          listItemCreatedFunction: (event) => {
+            const item = event.item;
+            item.open = item.layer.type === "group";
+          }
+        })
+      }), "top-right");
+      view.ui.add(new Expand({
+        view,
+        content: new Bookmarks({ view })
+      }), "top-left");
+    })();
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="titleDiv" class="esri-widget">
+    <div id="titleText">Webmap title</div>
+  </div>
+</body>
+</html>
